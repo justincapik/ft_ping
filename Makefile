@@ -10,7 +10,8 @@ INCLUDE = includes
 
 SRC_PATH = srcs
 
-SRCS =	main.c
+SRCS =	main.c \
+		parsing.c
 
 
 ##
@@ -34,18 +35,19 @@ OBJS = $(addprefix $(OBJ_PATH)/, $(SRCS:.c=.o))
 ##		FLAGS CONSTRUCTION
 ##
 
-CFLAGS += -Wall -Wextra -Werror 
+CFLAGS += #-Wall -Wextra -Werror 
+LFLAGS =
 
 IFLAGS = 	$(foreach dir, $(INCLUDE), -I$(dir) ) \
 
 $(OBJ_PATH)/%.o:	%.c $(IDEP)
-	$(CC) -c $< -o $@ $(CFLAGS) $(IFLAGS)
+	$(CC) -c $< -o $@ $(CFLAGS) $(IFLAGS) $(LFLAGS)
 
 
 all:		$(NAME)
 
 $(NAME):	$(OBJ_PATH) $(OBJS)
-	$(CC) -o $(NAME) $(OBJS) $(CFLAGS) $(IFLAGS)
+	$(CC) -o $(NAME) $(OBJS) $(CFLAGS) $(LFLAGS) $(IFLAGS)
 
 clean:
 	rm -rf $(OBJ_PATH)
