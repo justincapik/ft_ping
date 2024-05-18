@@ -35,15 +35,17 @@ int main(int argc, char** argv)
     // DNS lookup
     struct addrinfo hint;
     memset(&hint, 0, sizeof(struct addrinfo));
-    hint.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-    hint.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-    hint.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
-    hint.ai_protocol = 0;          /* Any protocol */
+    hint.ai_family = AF_INET;    /* Allow IPv4 or IPv6 */
+    hint.ai_socktype = SOCK_RAW; /* Datagram socket */
+    hint.ai_flags = AI_CANONNAME;
+    hint.ai_protocol = IPPROTO_ICMP;          /* Any protocol */
     hint.ai_canonname = NULL;
     hint.ai_addr = NULL;
     hint.ai_next = NULL;
-    struct addrinfo* res = malloc(sizeof(struct addrinfo));
-    int s = getaddrinfo(argv[1], NULL, &hint, &res);
+    struct addrinfo add_res;
+    struct addrinfo* res = &add_res;
+    int s = getaddrinfo(argv[1], 0, &hint, &res);
+    //printf("canon name -> %s\n", res->ai_canonname);
     if (s != 0) {
         fprintf(stderr, "ft_ping: %s: %s\n", argv[1], gai_strerror(s));
         exit(EXIT_FAILURE);
@@ -55,12 +57,13 @@ int main(int argc, char** argv)
     printf("FT_PING %s (%s)\n", argv[1], ip);
 
     // create and fill icmp package
-    char *buffer = (char*)malloc(BUFFER_SIZE);
+    char buffer[BUFFER_SIZE];
     struct icmp *icmp_hdr = (struct icmp *)buffer;
+    bzero(buffer, BUFFER_SIZE);
     icmp_hdr->icmp_type = ICMP_ECHO;
     icmp_hdr->icmp_code = 0;
-    icmp_hdr->icmp_id = htons(getpid());
-    icmp_hdr->icmp_seq = htons(1);
+    icmp_hdr->icmp_id = 0xadde;
+    icmp_hdr->icmp_seq = 1;
     icmp_hdr->icmp_cksum = 0;
     icmp_hdr->icmp_cksum = checksum(icmp_hdr, BUFFER_SIZE);
 
@@ -76,27 +79,42 @@ int main(int argc, char** argv)
     printf("paquet size => %ld\n", sizeof(*icmp_hdr));
     printf("addrp size => %ld\n", sizeof(endpoint));
 
-    for (int i = 0; i < 5; ++i)
-    {
+    // open socket for icmp paquet
+    int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    int ttl = 32;
+    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
-        // open socket for icmp paquet
-        int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-        printf("opened socket\n");
-        
+    printf("opened socket\n");
+    
+    char recbuffer[BUFFER_SIZE];
+    bzero(recbuffer, BUFFER_SIZE);
+
+    for(int i = 0; i < 5; ++i)
+    {
+        icmp_hdr->icmp_seq = i+1;
+        icmp_hdr->icmp_cksum = 0;
+        icmp_hdr->icmp_cksum = checksum(icmp_hdr, BUFFER_SIZE);
+
         // send paquet
         int sres = sendto(sockfd, buffer, BUFFER_SIZE,
             0, (struct sockaddr*)&endpoint, sizeof(endpoint));
         printf("sentto  (%d)\n", sres);
         
         // receive paquet
-        int rres = recvfrom(sockfd, buffer, BUFFER_SIZE,
+        int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE,
             0, (struct sockaddr*) &recfrom, &lenrecfrom); 
         printf("recvfrom(%d)\n", rres);
-        
-        close(sockfd);
-        printf("closed socket\n");
-    }
 
+        //getnameinfo(&sa, sizeof(sa), hostname, size_hostname, NULL, 0, 0);
+
+        // check checksum
+        // signal(SIGINT, func_to_catch_ctrl_c);
+        // 
+
+        sleep(1);
+    }    
+    close(sockfd);
+    printf("closed socket\n");
 
     return (EXIT_SUCCESS);
 }
