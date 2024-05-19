@@ -29,8 +29,11 @@ int main(int argc, char** argv)
     }
 
     options *opts = parse_argv(argc, argv);
-    //if (opts == NULL)
-    //    exit(EXIT_FAILURE);
+    if (opts == NULL)
+    {
+        fprintf(stderr, "ft_ping: usage error: Adresse de destination requise\n");
+        exit(EXIT_FAILURE);
+    }
 
     // DNS lookup
     struct addrinfo hint;
@@ -45,7 +48,6 @@ int main(int argc, char** argv)
     struct addrinfo add_res;
     struct addrinfo* res = &add_res;
     int s = getaddrinfo(argv[1], 0, &hint, &res);
-    //printf("canon name -> %s\n", res->ai_canonname);
     if (s != 0) {
         fprintf(stderr, "ft_ping: %s: %s\n", argv[1], gai_strerror(s));
         exit(EXIT_FAILURE);
@@ -89,7 +91,7 @@ int main(int argc, char** argv)
     char recbuffer[BUFFER_SIZE];
     bzero(recbuffer, BUFFER_SIZE);
 
-    for(int i = 0; i < 5; ++i)
+    for(int i = (opts->count < 0) ? 100000 : opts->count; i < 100; ++i)
     {
         icmp_hdr->icmp_seq = i+1;
         icmp_hdr->icmp_cksum = 0;
@@ -101,8 +103,9 @@ int main(int argc, char** argv)
         printf("sentto  (%d)\n", sres);
         
         // receive paquet
+        // pick() and check id number
         int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE,
-            0, (struct sockaddr*) &recfrom, &lenrecfrom); 
+            MSG_DONTWAIT, (struct sockaddr*) &recfrom, &lenrecfrom); 
         printf("recvfrom(%d)\n", rres);
 
         //getnameinfo(&sa, sizeof(sa), hostname, size_hostname, NULL, 0, 0);
@@ -112,9 +115,18 @@ int main(int argc, char** argv)
         // 
 
         sleep(1);
+
+        // get hostname and dns from addr
+        char revhostname[1000];
+        bzero(revhostname, 1000);
+        int ret = getnameinfo((struct sockaddr*)&endpoint, (socklen_t)sizeof(struct sockaddr),
+                        revhostname, 1000, 0, 0, NI_NOFQDN);
+        printf("hostname: [%s]\n", revhostname);
     }    
     close(sockfd);
     printf("closed socket\n");
+
+    free(opts);
 
     return (EXIT_SUCCESS);
 }

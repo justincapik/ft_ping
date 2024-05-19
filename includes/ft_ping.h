@@ -15,6 +15,8 @@
 #include <netinet/ip_icmp.h>
 #include <errno.h> // for errno
 
+# define TRUE 0
+# define FALSE 1
 
 typedef struct options_s {
     uint64_t    count;
