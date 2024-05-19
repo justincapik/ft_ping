@@ -20,7 +20,7 @@
 
 typedef struct options_s {
     uint64_t    count;
-    uint        ttl;
+    char        ttl;
     int         verbose;
     char        *host;
 } options;
