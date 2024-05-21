@@ -7,7 +7,6 @@ options     *parse_argv(int argc, char **argv)
     if (argc == 1)
     {
         fprintf(stderr, "%s: usage error: destination addresse or ip required\n", argv[0]);
-        exit(EXIT_FAILURE);
         return NULL;
     }
 
@@ -15,8 +14,14 @@ options     *parse_argv(int argc, char **argv)
 
     opts->count = -1;
     opts->ttl = 64;
-    opts->verbose = FALSE;
+    opts->flags = 0;
     opts->host = argv[argc - 1];
+
+    if (opts->flags & OPTS_COUNT > 0 && opts->count <= 0)
+    {
+        fprintf(stderr, "%s: invalid argument: '0': out of range: 1 <= value <= 9223372036854775807\n", argv[0]);
+        return NULL;
+    }
 
     return opts;
 }

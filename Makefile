@@ -10,8 +10,11 @@ INCLUDE = includes
 
 SRC_PATH = srcs
 
-SRCS =	main.c \
-		parsing.c
+SRCS =	main.c			\
+		parsing.c		\
+		lookups.c		\
+		packets.c		\
+		loop.c
 
 
 ##
