@@ -1,6 +1,6 @@
 #include "ft_ping.h"
 
-char    *dns_lookup(char *canonname)
+char    *dns_lookup(char *canonname, options *opts)
 {
     // check direction of lookup ?
     struct addrinfo hint;
@@ -12,13 +12,28 @@ char    *dns_lookup(char *canonname)
     hint.ai_canonname = NULL;
     hint.ai_addr = NULL;
     hint.ai_next = NULL;
+    if (opts->flags & OPTS_VERBOSE)
+        printf(", hints.ai_family: AF_INET\n\n");
+    
     struct addrinfo add_res;
     struct addrinfo* res = &add_res;
     int s = getaddrinfo(canonname, 0, &hint, &res);
     if (s != 0) {
-        fprintf(stderr, "ft_ping: %s: %s\n", canonname, gai_strerror(s));
+        fprintf(stderr, "ping: %s: %s\n", canonname, gai_strerror(s));
         return NULL;
     }
+
+    if (opts->flags & OPTS_VERBOSE)
+    {
+        if (res->ai_family & AF_INET)
+            printf("ai->ai_family: AF_INET");
+        else if (res->ai_family & AF_INET6)
+            printf("ai->ai_family: AF_INET6");
+        else if (res->ai_family & AF_UNSPEC)
+            printf("ai->ai_family: AF_UNSPEC");
+        printf(", ai->ai_canonname: '%s'\n", res->ai_canonname);
+    }
+
     struct sockaddr_in *addr;
     addr = (struct sockaddr_in *)res->ai_addr; 
     char *ip = inet_ntoa((struct in_addr)addr->sin_addr);
@@ -27,12 +42,12 @@ char    *dns_lookup(char *canonname)
 }
 
 // get hostname and dns from addr
-char    *hostname_lookup(struct sockaddr_in endpoint)
+int    hostname_lookup(struct sockaddr_in endpoint, char *revhostname)
 {
-        char *revhostname = (char*)malloc(sizeof(char)*1000);
-        bzero(revhostname, 1000);
-        int ret = getnameinfo((struct sockaddr*)&endpoint, (socklen_t)sizeof(struct sockaddr),
-                        revhostname, 1000, 0, 0, NI_NOFQDN);
-
-        return (char*)revhostname;
+    bzero(revhostname, 256);
+    int ret = getnameinfo((struct sockaddr*)&endpoint, (socklen_t)sizeof(struct sockaddr),
+                    revhostname, 1000, 0, 0, NI_NOFQDN);
+    if (ret != 0)
+        printf("%s\n", gai_strerror(ret));
+    return ret;
 }

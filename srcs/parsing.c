@@ -1,27 +1,24 @@
 #include "ft_ping.h"
 
-options     *parse_argv(int argc, char **argv)
+int    parse_argv(int argc, char **argv, options *opts)
 {
-    options *opts;
-
     if (argc == 1)
     {
         fprintf(stderr, "%s: usage error: destination addresse or ip required\n", argv[0]);
-        return NULL;
+        return FALSE;
     }
 
-    opts = (options*)malloc(sizeof(options));
-
-    opts->count = -1;
     opts->ttl = 64;
     opts->flags = 0;
     opts->host = argv[argc - 1];
+    opts->count = -1;
+    if (opts->count <= 0)
+        opts->flags |= OPTS_COUNT;
 
-    if (opts->flags & OPTS_COUNT > 0 && opts->count <= 0)
+    if (!(opts->flags & OPTS_COUNT) && opts->count <= 0)
     {
         fprintf(stderr, "%s: invalid argument: '0': out of range: 1 <= value <= 9223372036854775807\n", argv[0]);
-        return NULL;
+        return FALSE;
     }
-
-    return opts;
+    return TRUE;
 }
