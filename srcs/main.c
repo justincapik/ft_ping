@@ -20,10 +20,10 @@ int main(int argc, char** argv)
     if (opts.flags & OPTS_VERBOSE)
         printf("ping: sock4.fd: %d (socktype: SOCK_RAW)", sockfd);
 
-    char *ip = dns_lookup(argv[argc - 1], &opts);
-    printf("FT_PING %s (%s) 56(%d) bytes of data.\n",
-        argv[argc - 1], ip, 56 + sizeof(c_icmphdr) + sizeof(struct iphdr));
-    if (strcmp(argv[argc - 1], ip) == 0)
+    char *ip = dns_lookup(opts.host, &opts); //TODO: check if invalid
+    printf("FT_PING %s (%s) 56(%ld) bytes of data.\n",
+        opts.host, ip, 56 + sizeof(c_icmphdr) + sizeof(struct iphdr));
+    if (strcmp(opts.host, ip) == 0)
         opts.flags |= OPTS_NO_HOSTNAME;
 
     // create socket destination structure
@@ -35,10 +35,14 @@ int main(int argc, char** argv)
     packet_stats_t stats;
     ping_loop(&endpoint, sockfd, &opts, &stats);
 
-    printf("\n--- %s ping statistics ---\n", argv[argc - 1]);
-    printf("%d packets transmitted, %d received, %d%% packet loss\n",
-        stats.transmitted, stats.received,
-        (int)(100.0 * ((float)(stats.transmitted - stats.received) / (float)stats.transmitted)));
+    int packet_loss;
+    if (stats.transmitted == 0)
+        packet_loss = 100;
+    else
+        packet_loss = (int)(100.0 * ((float)(stats.transmitted - stats.received) / (float)stats.transmitted));
+    printf("\n--- %s ping statistics ---\n", opts.host);
+    printf("%ld packets transmitted, %ld received, %d%% packet loss\n",
+        stats.transmitted, stats.received, packet_loss);
 
     close(sockfd);
 

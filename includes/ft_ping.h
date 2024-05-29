@@ -17,9 +17,10 @@
 #include <errno.h> // for errno
 #include <time.h>
 #include <sys/time.h>
+#include <limits.h>
 
-# define TRUE 0
-# define FALSE 1
+# define TRUE 1
+# define FALSE 0
 
 # define OPTS_VERBOSE 0x1
 # define OPTS_NO_HOSTNAME 0x2
@@ -37,14 +38,14 @@ typedef struct options_s {
     char        *ip;
 } options;
 
-typedef struct sent_paquet_info_s {
+typedef struct sent_paquet_info_s sentp_info_t;
+struct sent_paquet_info_s {
     u_int16_t                   id;
     u_int16_t                   seq;
-    u_int16_t                   cksum;
-    time_t                      sendtime;
-    char                        received; // bool
-    struct send_paquet_info_s   *next;
-} sentp_info_t;
+    time_t                      sent_sec;
+    suseconds_t                 sent_usec;
+    sentp_info_t                *next;
+};
 
 typedef struct custom_icmphdr_s
 {
@@ -57,9 +58,10 @@ typedef struct custom_icmphdr_s
 } c_icmphdr;
 
 typedef struct packet_stats {
-    u_int64_t       transmitted;
-    u_int64_t       received;
-    time_t          start_time;
+    int64_t         transmitted;
+    int64_t         received;
+    time_t          start_sec;
+    suseconds_t     start_usec;
     sentp_info_t    *base;
 } packet_stats_t;
 
@@ -67,9 +69,12 @@ int                 parse_argv(int argc, char **argv, options *opts);
 char                *dns_lookup(char *canonname, options *opts);
 int                 hostname_lookup(struct sockaddr_in endpoint, char *revhostname);
 c_icmphdr           *create_icmp_packet(char *buffer);
-void                *update_packet(c_icmphdr *icmp_hdr);
+void                update_packet(c_icmphdr *icmp_hdr);
 void                ping_loop(struct sockaddr_in *endpoint, int sockfd,
                         options *opts, packet_stats_t *stats);
 unsigned short      checksum(void *b, int len);
+void                add_p_to_list(sentp_info_t **base, u_int16_t id, u_int16_t seq);
+sentp_info_t        *check_if_packet_exists(sentp_info_t **base, c_icmphdr *recicmp);
+void                print_sentp_info(sentp_info_t *base);
 
 #endif

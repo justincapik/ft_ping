@@ -38,7 +38,7 @@ OBJS = $(addprefix $(OBJ_PATH)/, $(SRCS:.c=.o))
 ##		FLAGS CONSTRUCTION
 ##
 
-CFLAGS += #-Wall -Wextra -Werror 
+CFLAGS += -Wall -Wextra -Werror 
 LFLAGS =
 
 IFLAGS = 	$(foreach dir, $(INCLUDE), -I$(dir) ) \
