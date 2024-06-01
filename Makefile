@@ -14,7 +14,8 @@ SRCS =	main.c			\
 		parsing.c		\
 		lookups.c		\
 		packets.c		\
-		loop.c
+		loop.c			\
+		stats.c
 
 
 ##

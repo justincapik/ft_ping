@@ -20,7 +20,9 @@ int main(int argc, char** argv)
     if (opts.flags & OPTS_VERBOSE)
         printf("ping: sock4.fd: %d (socktype: SOCK_RAW)", sockfd);
 
-    char *ip = dns_lookup(opts.host, &opts); //TODO: check if invalid
+    char *ip = dns_lookup(opts.host, &opts);
+    if (ip == NULL)
+        return (EXIT_FAILURE);
     printf("FT_PING %s (%s) 56(%ld) bytes of data.\n",
         opts.host, ip, 56 + sizeof(c_icmphdr) + sizeof(struct iphdr));
     if (strcmp(opts.host, ip) == 0)
@@ -35,15 +37,9 @@ int main(int argc, char** argv)
     packet_stats_t stats;
     ping_loop(&endpoint, sockfd, &opts, &stats);
 
-    int packet_loss;
-    if (stats.transmitted == 0)
-        packet_loss = 100;
-    else
-        packet_loss = (int)(100.0 * ((float)(stats.transmitted - stats.received) / (float)stats.transmitted));
-    printf("\n--- %s ping statistics ---\n", opts.host);
-    printf("%ld packets transmitted, %ld received, %d%% packet loss\n",
-        stats.transmitted, stats.received, packet_loss);
+    print_stats(&stats, &opts);
 
+    free_ll(stats.base);
     close(sockfd);
 
     return (EXIT_SUCCESS);

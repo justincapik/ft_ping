@@ -8,7 +8,7 @@ void    create_sent_info()
 }
 
 int     rec_packet(int sockfd, struct sockaddr_in recfrom,
-            sentp_info_t **base, options *opts)
+            sentp_info_t *base, options *opts)
 {
     struct timeval ct;
     gettimeofday( &ct, NULL );
@@ -24,16 +24,17 @@ int     rec_packet(int sockfd, struct sockaddr_in recfrom,
     sentp_info_t *old_package; //TODO: parse ICMP error header
     if (rres > 0 && (old_package = check_if_packet_exists(base, recicmp)) != NULL)
     {
-        unsigned long int difftime;
-        difftime = (ct.tv_sec - old_package->sent_sec) * 1000000 + ct.tv_usec - old_package->sent_usec;
-
         cks = recicmp->cksum;
         recicmp->cksum = 0;
         if (cks != checksum(recicmp, sizeof(*recicmp)))
         {
-            printf("Error: Invalid checksum\n"); //TODO: change message
+            printf("ping: error: Invalid checksum\n");
             return (FALSE);
         }
+        
+        int64_t difftime;
+        difftime = (ct.tv_sec - old_package->sent_sec) * 1000000 + ct.tv_usec - old_package->sent_usec;
+        old_package->difftime = difftime;
 
         int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE,
             MSG_DONTWAIT, (struct sockaddr*) &recfrom, &lenrecfrom);
@@ -56,13 +57,12 @@ int     rec_packet(int sockfd, struct sockaddr_in recfrom,
             printf("icmp_seq=%d ttl=%d ", recicmp->sequence, iph->ttl);
 
         printf("time=%lu", difftime/1000);
-        if (difftime < 100000)
+        if (difftime < 10000)
             printf(".%02lu", (difftime%1000)/10);
-        else if (difftime < 1000000)
-            printf(".%lu", (difftime%1000)/100);
+        else if (difftime < 100000)
+            printf(".%01lu", (difftime%1000)/100);
         printf("ms\n");
         
-        free(old_package);
         return (TRUE);
     }
     return (FALSE);
@@ -86,13 +86,14 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts, packe
     stats->received = 0;
     stats->start_sec = ct.tv_sec;
     stats->start_usec = ct.tv_usec;
-    stats->base = NULL;
+    stats->base = sentp_base;
 
     char tmp[BUFFER_SIZE];
     char *buffer = (char *)tmp;
     c_icmphdr *icmp_hdr = create_icmp_packet(buffer);
 
     int count = (opts->count > 0) ? opts->count : 1;
+    int ident = rand() % (SHRT_MAX + 1);
 
     signal(SIGINT, sigintHandler);
     while (count > 0 && keepRunning == TRUE)
@@ -102,11 +103,11 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts, packe
         gettimeofday( &t, NULL );
         if (t.tv_sec > ct.tv_sec && (stats->transmitted < opts->count || opts->count < 0))
         {
-            update_packet(icmp_hdr);
+            update_packet(icmp_hdr, ident);
             if (sendto(sockfd, buffer, BUFFER_SIZE,
                     0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
             {
-                fprintf(stderr, "Error: could not send message\n");
+                fprintf(stderr, "ping: error: could not send message\n");
                 break ;
             }
             gettimeofday( &ct, NULL );
@@ -115,11 +116,12 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts, packe
         }
         sleep(0.01);
         // rec packet
-        if (rec_packet(sockfd, recfrom, &sentp_base, opts) == TRUE)
+        if (rec_packet(sockfd, recfrom, sentp_base, opts) == TRUE)
         {
             stats->received++;
             if (opts->count > 0)
                 count--;
         }
     }
+    stats->base = sentp_base;
 }
