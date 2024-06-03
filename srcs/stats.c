@@ -79,7 +79,7 @@ void    print_stats(packet_stats_t *stats, options *opts)
     printf(", time %ldms\n", difftime/1000);
     
     get_time_stats(stats);
-    if (stats->avg > 0)
+    if (stats->received > 0)
     {
         printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
             (double)stats->min/1000, (double)stats->avg/1000,

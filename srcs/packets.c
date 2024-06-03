@@ -22,12 +22,15 @@ c_icmphdr   *create_icmp_packet(char *buffer)
     // create and fill icmp package
     c_icmphdr *icmp_hdr = (c_icmphdr *)buffer;
     bzero(buffer, BUFFER_SIZE);
+    for(int i = sizeof(icmp_hdr); i < BUFFER_SIZE; ++i)
+        buffer[i] = (char)(i - sizeof(icmp_hdr));
+    
     icmp_hdr->type = ICMP_ECHO;
     icmp_hdr->code = 0;
     icmp_hdr->id = 12345; //filler 
     icmp_hdr->sequence = 0;
     icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr, BUFFER_SIZE);
+    icmp_hdr->cksum = checksum(icmp_hdr+64, BUFFER_SIZE);
 
     return icmp_hdr;
 }

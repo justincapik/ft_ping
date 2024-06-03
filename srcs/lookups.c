@@ -41,9 +41,13 @@ char    *dns_lookup(char *canonname, options *opts)
     return (ip);
 }
 
-// get hostname and dns from addr
-int    hostname_lookup(struct sockaddr_in endpoint, char *revhostname)
+// get hostname and dns from ip
+int    hostname_lookup(unsigned int ip, char *revhostname)
 {
+    struct sockaddr_in endpoint;
+    endpoint.sin_family = AF_INET;
+    endpoint.sin_addr.s_addr = ip;
+
     bzero(revhostname, 256);
     int ret = getnameinfo((struct sockaddr*)&endpoint, (socklen_t)sizeof(struct sockaddr),
                     revhostname, 1000, 0, 0, NI_NOFQDN);

@@ -25,6 +25,11 @@
 # define OPTS_VERBOSE 0x1
 # define OPTS_NO_HOSTNAME 0x2
 # define OPTS_COUNT 0x4
+# define OPTS_TIMESTAMP 0x8
+# define OPTS_QUIET 0x10
+# define OPTS_ALERT 0x20
+# define OPTS_FLOOD 0x40
+# define OPTS_CONNECT 0x80
 
 # define BUFFER_SIZE 64
 
@@ -32,10 +37,12 @@ static volatile int keepRunning = TRUE;
 
 typedef struct options_s {
     int64_t     count;
-    char        ttl;
+    double      interval;
     uint64_t    flags;
+    int         size;
     char        *host;
     char        *ip;
+    char        ttl;
 } options;
 
 typedef struct sent_paquet_info_s sentp_info_t;
@@ -56,7 +63,6 @@ typedef struct custom_icmphdr_s
     u_int16_t   cksum;
     u_int16_t   id;
     u_int16_t   sequence;
-    //char        []data; TODO: ?
 } c_icmphdr;
 
 typedef struct packet_stats {
@@ -75,7 +81,7 @@ typedef struct packet_stats {
 
 int                 parse_argv(int argc, char **argv, options *opts);
 char                *dns_lookup(char *canonname, options *opts);
-int                 hostname_lookup(struct sockaddr_in endpoint, char *revhostname);
+int                 hostname_lookup(unsigned int ip, char *revhostname);
 
 c_icmphdr           *create_icmp_packet(char *buffer);
 unsigned short      checksum(void *b, int len);
