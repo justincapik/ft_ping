@@ -57,29 +57,33 @@ void    print_packet_info(int rres, c_icmphdr *recicmp,
 
 int     rec_packet(int sockfd, sentp_info_t *base, options *opts)
 {
+    sentp_info_t *old_package;
     char recbuffer[BUFFER_SIZE];
     bzero(recbuffer, BUFFER_SIZE);
 
     int rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_PEEK | MSG_DONTWAIT);
     c_icmphdr *recicmp = (c_icmphdr *)(recbuffer + sizeof(struct iphdr));
+    struct iphdr *iph = (struct iphdr *)recbuffer;
 
-    sentp_info_t *old_package; //TODO: parse ICMP error header
+    if (rres > 0 && recicmp->type == 11 && recicmp->code == 0)
+    {
+        rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
+        char ip[BUFFER_SIZE];
+        inet_ntop(AF_INET, &(iph->saddr), ip, BUFFER_SIZE);
+        //TODO:
+        printf("Time to live exceeded");
+        return (TRUE);
+    }
+
     if (rres > 0 && (old_package = check_if_packet_exists(base, recicmp)) != NULL)
     {
-        /*
-        u_int16_t cks;
-        cks = recicmp->cksum;
-        recicmp->cksum = 0;
-        if (cks != checksum(recicmp, BUFFER_SIZE))
+        if (0 != checksum(recicmp, rres - sizeof(struct iphdr)))
         {
             printf("ping: error: Invalid checksum\n");
             return (FALSE);
         }
-        */
 
-        int rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
-        struct iphdr *iph = (struct iphdr *)recbuffer;
-        c_icmphdr *recicmp = (c_icmphdr *)(recbuffer + sizeof(struct iphdr));
+        rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
         
         print_packet_info(rres, recicmp, iph, old_package, opts);
 
@@ -127,7 +131,7 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts, packe
             if (opts->flags & OPTS_FLOOD)
                 printf(".");
             update_packet(icmp_hdr, ident);
-            if (sendto(sockfd, buffer, BUFFER_SIZE,
+            if (sendto(sockfd, buffer, sizeof(c_icmphdr) + opts->size,
                     0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
             {
                 fprintf(stderr, "ping: error: could not send message\n");

@@ -38,7 +38,6 @@ Options:\n\
   -a             use audible ping\n\
   -c <count>     stop after <count> replies\n\
   -D             print timestamps\n\
-  -f             flood ping\n\
   -i <interval>  seconds between sending each packet\n\
   -h             print help and exit\n\
   -q             quiet output\n\
@@ -68,11 +67,6 @@ Options:\n\
             opts->flags |= OPTS_QUIET;
         else if (strcmp(argv[i], "-D") == 0 || strcmp(argv[i], "--timestamps") == 0)
             opts->flags |= OPTS_TIMESTAMP;
-        else if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--flood") == 0)
-        {
-            opts->flags |= OPTS_FLOOD;
-            opts->interval = 0.01;
-        }
         else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
         {
             printf("%s", usage);
@@ -98,6 +92,8 @@ Options:\n\
                     argv[0], argv[i+1], SHRT_MAX);
                 return FALSE;
             }
+            if (opts->interval < 0.01)
+                opts->interval = 0.01;
             ++i;
         }
         else if (strcmp(argv[i], "-t") == 0 && isnumber(argv[i+1]) && i < argc - 2)
@@ -118,9 +114,6 @@ Options:\n\
             return FALSE;
         }
     }
-
-    if (opts->interval < 0.01)
-        opts->interval = 0.01;
 
     return TRUE;
 }

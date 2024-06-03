@@ -22,7 +22,6 @@ char    *dns_lookup(char *canonname, options *opts)
         fprintf(stderr, "ping: %s: %s\n", canonname, gai_strerror(s));
         return NULL;
     }
-
     if (opts->flags & OPTS_VERBOSE)
     {
         if (res->ai_family & AF_INET)
@@ -37,6 +36,9 @@ char    *dns_lookup(char *canonname, options *opts)
     struct sockaddr_in *addr;
     addr = (struct sockaddr_in *)res->ai_addr; 
     char *ip = inet_ntoa((struct in_addr)addr->sin_addr);
+
+    free(res->ai_canonname);
+    free(res);
 
     return (ip);
 }

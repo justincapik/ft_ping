@@ -31,7 +31,7 @@
 # define OPTS_FLOOD 0x40
 # define OPTS_CONNECT 0x80
 
-# define BUFFER_SIZE 64
+# define BUFFER_SIZE SHRT_MAX
 
 static volatile int keepRunning = TRUE;
 

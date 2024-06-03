@@ -30,7 +30,7 @@ c_icmphdr   *create_icmp_packet(char *buffer)
     icmp_hdr->id = 12345; //filler 
     icmp_hdr->sequence = 0;
     icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr+64, BUFFER_SIZE);
+    icmp_hdr->cksum = checksum(icmp_hdr, 56); //TODO:
 
     return icmp_hdr;
 }
@@ -40,7 +40,7 @@ void        update_packet(c_icmphdr *icmp_hdr, int ident)
     icmp_hdr->sequence = icmp_hdr->sequence + 1;
     icmp_hdr->id = ident;
     icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr, BUFFER_SIZE);
+    icmp_hdr->cksum = checksum(icmp_hdr, 56 + sizeof(c_icmphdr)); //TODO:
 }
 
 void        add_p_to_list(sentp_info_t **base, u_int16_t id, u_int16_t seq)
