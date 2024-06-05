@@ -75,6 +75,8 @@ void    print_stats(packet_stats_t *stats, options *opts)
     
     printf("\n--- %s ping statistics ---\n", opts->host);
     printf("%ld packets transmitted, %ld received", stats->transmitted, stats->received);
+    if (stats->error > 0)
+        printf(", +%ld errors", stats->error);
     printf(", %.f%% packet loss", packet_loss);
     printf(", time %ldms\n", difftime/1000);
     

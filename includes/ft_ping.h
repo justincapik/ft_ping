@@ -21,6 +21,7 @@
 
 # define TRUE 1
 # define FALSE 0
+# define ERROR 2
 
 # define OPTS_VERBOSE 0x1
 # define OPTS_NO_HOSTNAME 0x2
@@ -69,6 +70,7 @@ typedef struct packet_stats {
     int64_t         transmitted;
     int64_t         received;
     int64_t         unreceived;
+    int64_t         error;
     time_t          start_sec;
     suseconds_t     start_usec;
     int64_t         last_difftime;

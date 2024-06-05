@@ -65,28 +65,30 @@ int     rec_packet(int sockfd, sentp_info_t *base, options *opts)
     c_icmphdr *recicmp = (c_icmphdr *)(recbuffer + sizeof(struct iphdr));
     struct iphdr *iph = (struct iphdr *)recbuffer;
 
-    if (rres > 0 && recicmp->type == 11 && recicmp->code == 0)
+    if (rres > 0 && recicmp->type == 11 && recicmp->code == 0
+        && (old_package = check_if_packet_exists(base, (c_icmphdr*)((char*)recicmp + 28))) != NULL)
     {
-        rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
         char ip[BUFFER_SIZE];
+        char hostname[256];
+        rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
         inet_ntop(AF_INET, &(iph->saddr), ip, BUFFER_SIZE);
-        //TODO:
-        printf("Time to live exceeded");
-        return (TRUE);
+        hostname_lookup(iph->saddr, (char *)hostname);
+        if (strlen(hostname) != 0)
+            printf("From %s (%s) ", hostname, ip);
+        else
+            printf("From %s ", ip);
+        printf("icmp_seq=%d Time to live exceeded\n", old_package->seq);
+        return (ERROR);
     }
-
-    if (rres > 0 && (old_package = check_if_packet_exists(base, recicmp)) != NULL)
+    else if (rres > 0 && (old_package = check_if_packet_exists(base, recicmp)) != NULL)
     {
         if (0 != checksum(recicmp, rres - sizeof(struct iphdr)))
         {
             printf("ping: error: Invalid checksum\n");
             return (FALSE);
         }
-
         rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
-        
         print_packet_info(rres, recicmp, iph, old_package, opts);
-
         return (TRUE);
     }
     return (FALSE);
@@ -105,6 +107,7 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts, packe
     sentp_info_t *sentp_base = NULL;
     stats->transmitted = 0;
     stats->received = 0;
+    stats->error = 0;
     stats->start_sec = ct.tv_sec;
     stats->start_usec = ct.tv_usec;
     stats->base = sentp_base;
@@ -143,9 +146,16 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts, packe
         }
         sleep(0.01);
         // rec packet
-        if (rec_packet(sockfd, sentp_base, opts) == TRUE)
+        int ret = rec_packet(sockfd, sentp_base, opts); 
+        if (ret == TRUE)
         {
             stats->received++;
+            if (opts->count > 0)
+                count--;
+        }
+        else if (ret == ERROR)
+        {
+            stats->error++;
             if (opts->count > 0)
                 count--;
         }
